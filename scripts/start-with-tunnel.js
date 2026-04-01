@@ -3,6 +3,20 @@ const fs = require('fs');
 const path = require('path');
 
 const ENV_PATH = path.join(__dirname, '../.env');
+const isWindows = process.platform === 'win32';
+
+/**
+ * A helper function to spawn commands in a platform-agnostic way.
+ */
+function runSpawn(command, args, options = {}) {
+    if (isWindows) {
+        // On Windows, npx must be called via cmd /c
+        return spawn('cmd', ['/c', command, ...args], { shell: true, ...options });
+    } else {
+        // On Unix, call the command directly
+        return spawn(command, args, { shell: true, ...options });
+    }
+}
 
 async function updateEnv(url) {
     console.log(`\n🚀 Capturing Cloudflare URL: ${url}`);
@@ -34,14 +48,11 @@ async function updateEnv(url) {
 
 async function start() {
     console.log('🧹 Clearing port 8081...');
-    // Use npx kill-port
-    const killPort = spawn('cmd', ['/c', 'npx -y kill-port 8081'], { shell: true });
+    const killPort = runSpawn('npx', ['-y', 'kill-port', '8081']);
     await new Promise(resolve => killPort.on('exit', resolve));
 
     console.log('🌐 Starting Cloudflare Tunnel...');
-    // We use npx -y cloudflared to avoid manual install
-    const tunnel = spawn('cmd', ['/c', 'npx -y cloudflared tunnel --url http://localhost:8081'], {
-        shell: true,
+    const tunnel = runSpawn('npx', ['-y', 'cloudflared', 'tunnel', '--url', 'http://localhost:8081'], {
         stdio: ['ignore', 'pipe', 'pipe']
     });
 
@@ -50,7 +61,7 @@ async function start() {
     // Cloudflare logs the URL to stderr
     tunnel.stderr.on('data', async (data) => {
         const output = data.toString();
-        // console.log(output); // Debug logs
+        // console.log(output);
 
         const urlMatch = output.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
         if (urlMatch && !urlFound) {
@@ -59,10 +70,8 @@ async function start() {
             await updateEnv(url);
             
             console.log('📲 Starting Expo with the new tunnel...');
-            // Start expo now that .env is updated
-            const expo = spawn('cmd', ['/c', 'npx expo start'], { 
-                stdio: 'inherit',
-                shell: true 
+            const expo = runSpawn('npx', ['expo', 'start'], { 
+                stdio: 'inherit'
             });
             
             expo.on('exit', (code) => {
