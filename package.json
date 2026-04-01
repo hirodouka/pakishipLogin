@@ -8,8 +8,9 @@
     "android": "expo run:android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lt": "lt --port 8081",
-    "start:lt": "npx expo start",
+    "lt": "lt --port 8081 --subdomain pakiship-customer-v3",
+    "dev": "node scripts/start-with-tunnel.js",
+    "start:lt": "npx -y kill-port 8081 && concurrently --raw \"npx expo start\" \"npx wait-on tcp:8081 && npm run lt\"",
     "postinstall": "node scripts/ensure-detox-jest-compat.js",
     "verify": "npm run lint && npm run test",
     "lint": "npx eslint . --max-warnings=0",
@@ -45,11 +46,14 @@
     "@types/react-native": "^0.72.8",
     "babel-plugin-module-resolver": "^5.0.3",
     "babel-preset-expo": "~54.0.10",
+    "concurrently": "^9.2.1",
     "detox": "^20.50.1",
     "jest-expo": "~54.0.17",
+    "localtunnel": "^2.0.2",
     "postcss": "8.4.23",
     "tailwindcss": "3.3.2",
     "ts-node": "^10.9.2",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "wait-on": "^9.0.4"
   }
 }
